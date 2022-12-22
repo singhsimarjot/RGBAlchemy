@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import SquareBlock from "../squareBlock";
 import "./rgbAlchemy.css";
+import UserInfo from "../userInfo";
 const RGBAlchemy = ({ userDetails }) => {
   const [colorArray, setColorArray] = useState([]);
   const [colors, setColors] = useState([]);
@@ -305,7 +306,8 @@ const RGBAlchemy = ({ userDetails }) => {
 
   return (
     <div className="container">
-      {console.log(colors)}
+        <UserInfo userDetails={userDetails} /> 
+     
       {colors.map((row, i) => {
         return (
           <div key={i} className="row">

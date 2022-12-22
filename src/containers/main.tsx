@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import RGBAlchemy from "../components/rgbAlchemy";
 import { userData } from "../services/user";
 import { IUserDetail } from "../interfaces/IuserDetail";
-import UserInfo from "../components/userInfo";
 
 export const Main = (): JSX.Element => {
   const [loading, setLoading] = useState<Boolean>(true);
@@ -26,10 +25,5 @@ export const Main = (): JSX.Element => {
   if (loading) {
     return <div>Loading..</div>;
   }
-  return (
-    <>
-      <UserInfo userDetails={userDetails} />
-      <RGBAlchemy userDetails={userDetails} />
-    </>
-  );
+  return <RGBAlchemy userDetails={userDetails} />;
 };
