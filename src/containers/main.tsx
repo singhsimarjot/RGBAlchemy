@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import RGBAlchemy from "../components/rgbAlchemy";
 import { userData } from "../services/user";
 import { IUserDetail } from "../interfaces/IuserDetail";
 
 export const Main = (): JSX.Element => {
   const [loading, setLoading] = useState<Boolean>(true);
-  const [userDetails, setUserDetails] = useState<IUserDetail>({});
+  const [userDetails, setUserDetails] = useState<IUserDetail>({
+    target: [0,0,0],
+    userId:"",
+    width:0,
+    height:0,
+    maxMoves:0
+
+  });
 
   useEffect(() => {
     const fetchData = async () => {

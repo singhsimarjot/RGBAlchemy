@@ -1,10 +1,37 @@
-import { useState, useEffect } from "react";
-import SquareBlock from "../squareBlock";
+import { FC, useState, useEffect } from "react";
 import "./rgbAlchemy.css";
+
+import SquareBlock from "../squareBlock";
 import UserInfo from "../userInfo";
-const RGBAlchemy = ({ userDetails }) => {
-  const [colorArray, setColorArray] = useState([]);
-  const [colors, setColors] = useState([]);
+
+import { IUserDetail } from "../../interfaces/IuserDetail";
+
+const RGBAlchemy: FC<{
+  userDetails: IUserDetail;
+}> = ({ userDetails }) => {
+  const [userInfo, setUserInfo] = useState<IUserDetail>({
+    target: [0, 0, 0],
+    userId: "",
+    width: 0,
+    height: 0,
+    maxMoves: 0,
+  });
+  const [colorArray, setColorArray] = useState<
+    | {
+        r: number;
+        g: number;
+        b: number;
+      }[][]
+    | []
+  >([]);
+  const [colors, setColors] = useState<
+    | {
+        r: number;
+        g: number;
+        b: number;
+      }[][]
+    | []
+  >([]);
   const [clickedElement, setClickedElement] = useState({
     r: 0,
     g: 0,
@@ -21,27 +48,47 @@ const RGBAlchemy = ({ userDetails }) => {
     yPos: 0,
   });
   const [clickFlag, setClickFlag] = useState(3);
+  const [closestColor, setClosestColor] = useState<
+    { difference: number; color: { r: number; g: number; b: number } }[] | []
+  >([]);
 
-  const grid = [];
-  const targetColor = {
-    r: 255,
-    g: 204,
-    b: 46,
-  };
+  const { target } = userInfo;
 
   useEffect(() => {
-    setColorArray([...colors]);
+    let colors = [];
+    for (let row = 0; row < userDetails.height + 2; row++) {
+      const arrayY = [];
+      for (let col = 0; col < userDetails.width + 2; col++) {
+        arrayY.push({ r: 0, g: 0, b: 0 });
+      }
+      colors.push(arrayY);
+    }
+    setColors(colors);
+    setUserInfo(userDetails);
+  }, [userDetails]);
+
+  useEffect(() => {
+    return setColorArray([...colors]);
   }, [colors]);
 
   useEffect(() => {
     if (colorArray.length) {
-      // for (let row = 0; row < userDetails.height + 2; row++) {
-      //   for (let col = 0; col < userDetails.width + 2; col++) {
-      //     document.querySelectorAll(
-      //       `[data-x-pos="${row}"][data-y-pos="${col}"]`
-      //     )[0].style.backgroundColor = `rgb(${colorArray[row][col].r},${colorArray[row][col].g},${colorArray[row][col].b})`;
-      //   }
-      // }
+      for (let row = 0; row < userDetails.height + 2; row++) {
+        for (let col = 0; col < userDetails.width + 2; col++) {
+          let floorElements = document.getElementsByClassName(
+            `block_${row}_${col}`
+          ) as HTMLCollectionOf<HTMLElement>;
+
+          if (floorElements.length) {
+            floorElements[0].style.backgroundColor = `rgb(${colorArray[row][col].r},${colorArray[row][col].g},${colorArray[row][col].b})`;
+          }
+        }
+      }
+
+      let closestColor: {
+        difference: number;
+        color: { r: number; g: number; b: number };
+      }[] = [];
       for (let row = 1; row < userDetails.height + 1; row++) {
         for (let col = 1; col < userDetails.width + 1; col++) {
           let r, g, b, result;
@@ -52,36 +99,45 @@ const RGBAlchemy = ({ userDetails }) => {
             (1 / 255) *
             (1 / Math.sqrt(3)) *
             Math.sqrt(
-              Math.pow(targetColor.r - r, 2) +
-                Math.pow(targetColor.g - g, 2) +
-                Math.pow(targetColor.b - b, 2)
+              Math.pow(target[0] - r, 2) +
+                Math.pow(target[1] - g, 2) +
+                Math.pow(target[2] - b, 2)
             ) *
             100;
-          console.log(result);
+          closestColor = [
+            ...closestColor,
+            { difference: result, color: { r: r, g: g, b: b } },
+          ];
+
           if (result < 10) {
-            console.warn("You Won!!!");
+            alert("You Won!!!");
+            break;
           }
         }
       }
+
+      closestColor.sort((a, b) => {
+        return a.difference - b.difference;
+      });
+      setClosestColor(closestColor);
     }
   }, [colorArray]);
 
   useEffect(() => {
     if (colorArray.length) {
-      setColorArray([
-        ...colorArray,
-        (colorArray[clickedElement.xPos][clickedElement.yPos].r =
-          clickedElement.r),
-        (colorArray[clickedElement.xPos][clickedElement.yPos].g =
-          clickedElement.g),
-        (colorArray[clickedElement.xPos][clickedElement.yPos].b =
-          clickedElement.b),
-      ]);
+      let temp = [...colorArray];
+
+      temp[clickedElement.xPos][clickedElement.yPos].r = clickedElement.r;
+      temp[clickedElement.xPos][clickedElement.yPos].g = clickedElement.g;
+      temp[clickedElement.xPos][clickedElement.yPos].b = clickedElement.b;
+
+      setColorArray(temp);
 
       if (clickedElement.xPos === 0) {
         for (let i = 1; i <= userDetails.height; i++) {
           setColorArray((prevState) => {
             let r, g, b;
+
             if (
               !prevState[userDetails.height - i + 1][clickedElement.yPos].r &&
               !prevState[userDetails.height - i + 1][clickedElement.yPos].g &&
@@ -102,15 +158,13 @@ const RGBAlchemy = ({ userDetails }) => {
                 (clickedElement.b * i) / (userDetails.height + 1);
             }
             let f = 255 / Math.max(r, g, b, 255);
-            return [
-              ...prevState,
-              (colorArray[userDetails.height - i + 1][clickedElement.yPos].r =
-                r * f),
-              (colorArray[userDetails.height - i + 1][clickedElement.yPos].g =
-                g * f),
-              (colorArray[userDetails.height - i + 1][clickedElement.yPos].b =
-                b * f),
-            ];
+
+            let temp = [...prevState];
+            temp[userDetails.height - i + 1][clickedElement.yPos].r = r * f;
+            temp[userDetails.height - i + 1][clickedElement.yPos].g = g * f;
+            temp[userDetails.height - i + 1][clickedElement.yPos].b = b * f;
+
+            return [...temp];
           });
         }
       }
@@ -138,12 +192,11 @@ const RGBAlchemy = ({ userDetails }) => {
                 (clickedElement.b * i) / (userDetails.height + 1);
             }
             let f = 255 / Math.max(r, g, b, 255);
-            return [
-              ...prevState,
-              (colorArray[i][clickedElement.yPos].r = r * f),
-              (colorArray[i][clickedElement.yPos].g = g * f),
-              (colorArray[i][clickedElement.yPos].b = b * f),
-            ];
+            let temp2 = [...prevState];
+            temp2[i][clickedElement.yPos].r = r * f;
+            temp2[i][clickedElement.yPos].g = g * f;
+            temp2[i][clickedElement.yPos].b = b * f;
+            return [...temp2];
           });
         }
       }
@@ -172,15 +225,11 @@ const RGBAlchemy = ({ userDetails }) => {
                 (clickedElement.b * j) / (userDetails.width + 1);
             }
             let f = 255 / Math.max(r, g, b, 255);
-            return [
-              ...prevState,
-              (colorArray[clickedElement.xPos][userDetails.width - j + 1].r =
-                r * f),
-              (colorArray[clickedElement.xPos][userDetails.width - j + 1].g =
-                g * f),
-              (colorArray[clickedElement.xPos][userDetails.width - j + 1].b =
-                b * f),
-            ];
+            let temp3 = [...prevState];
+            temp3[clickedElement.xPos][userDetails.width - j + 1].r = r * f;
+            temp3[clickedElement.xPos][userDetails.width - j + 1].g = g * f;
+            temp3[clickedElement.xPos][userDetails.width - j + 1].b = b * f;
+            return [...temp3];
           });
         }
       }
@@ -208,12 +257,11 @@ const RGBAlchemy = ({ userDetails }) => {
                 (clickedElement.b * j) / (userDetails.width + 1);
             }
             let f = 255 / Math.max(r, g, b, 255);
-            return [
-              ...prevState,
-              (colorArray[clickedElement.xPos][j].r = r * f),
-              (colorArray[clickedElement.xPos][j].g = g * f),
-              (colorArray[clickedElement.xPos][j].b = b * f),
-            ];
+            let temp = [...prevState];
+            temp[clickedElement.xPos][j].r = r * f;
+            temp[clickedElement.xPos][j].g = g * f;
+            temp[clickedElement.xPos][j].b = b * f;
+            return [...temp];
           });
         }
       }
@@ -232,19 +280,11 @@ const RGBAlchemy = ({ userDetails }) => {
     }
   }, [dropElement]);
 
-  useEffect(() => {
-    let colors = [];
-    for (let row = 0; row < userDetails.height + 2; row++) {
-      const arrayY = [];
-      for (let col = 0; col < userDetails.width + 2; col++) {
-        arrayY.push({ r: 0, g: 0, b: 0 });
-      }
-      colors.push(arrayY);
-    }
-    setColors(colors);
-  }, [userDetails]);
-
-  const handleClick = (e, x, y) => {
+  const handleClick = (
+    e: React.MouseEvent<HTMLElement>,
+    x: number,
+    y: number
+  ) => {
     if (
       clickFlag > 0 &&
       ((x === 0 && y <= userDetails.width) ||
@@ -283,14 +323,25 @@ const RGBAlchemy = ({ userDetails }) => {
     }
   };
 
-  const handleDrag = (e, x, y) => {
+  const handleDrag = (
+    e: React.MouseEvent<HTMLElement>,
+    x: number,
+    y: number
+  ) => {
     setDraggedElement({
       xPos: x,
       yPos: y,
     });
+    if (userInfo.maxMoves === 0) {
+      alert("Max moves limit reached!");
+    }
   };
 
-  const handleDrop = (e, x, y) => {
+  const handleDrop = (
+    e: React.MouseEvent<HTMLElement>,
+    x: number,
+    y: number
+  ) => {
     if (
       (x === 0 && y <= userDetails.width) ||
       (y === 0 && x <= userDetails.height) ||
@@ -301,33 +352,40 @@ const RGBAlchemy = ({ userDetails }) => {
         xPos: x,
         yPos: y,
       });
+
+      setUserInfo((userInfo) => {
+        return { ...userInfo, maxMoves: userInfo.maxMoves - 1 };
+      });
     }
   };
-
   return (
-    <div className="container">
-        <UserInfo userDetails={userDetails} /> 
-     
-      {colors.map((row, i) => {
-        return (
-          <div key={i} className="row">
-            {row.map((color, j) => {
-              return (
-                <SquareBlock
-                color ={color}
-                  key={j}
-                  xPos={i}
-                  yPos={j}
-                  handleClick={handleClick}
-                  handleDrop={handleDrop}
-                  handleDrag={handleDrag}
-                />
-              );
-            })}
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <UserInfo userDetails={userInfo} closestColor={closestColor[0]} />
+      <div className="container">
+        {colors.map((row, i) => {
+          return (
+            <div key={i} className="row">
+              {row.map((color, j) => {
+                return (
+                  <>
+                    <SquareBlock
+                      color={color}
+                      key={j}
+                      xPos={i}
+                      yPos={j}
+                      handleClick={handleClick}
+                      handleDrop={handleDrop}
+                      handleDrag={handleDrag}
+                      closestColor={closestColor[0]}
+                    />
+                  </>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 };
 

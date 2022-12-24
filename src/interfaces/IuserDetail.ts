@@ -1,7 +1,7 @@
 export  type IUserDetail = {
-    userId?: string,
-    width?: number,
-    height?: number,
-    maxMoves?: number,
-    target?: [index:number]
+    userId: string,
+    width: number,
+    height: number,
+    maxMoves: number,
+    target: [number,number,number]
 }

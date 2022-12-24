@@ -2,4 +2,9 @@
     width: 20px;
     height: 20px;
     margin: 3px;
+    border: 2px solid transparent;
+}
+.activeBlock{
+      border-color: red;
+
 }

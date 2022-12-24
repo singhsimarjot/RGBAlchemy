@@ -1,0 +1,12 @@
+.user_info{
+     margin-bottom: 30px;
+}
+.user_info ul { 
+    list-style: none;
+  }
+
+ .user_info ul li { 
+     margin-bottom: 10px;
+     vertical-align: bottom;
+
+ }
